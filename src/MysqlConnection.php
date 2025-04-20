@@ -13,38 +13,41 @@ class MysqlConnection extends IlluminateMySqlConnection
     public function __construct($pdo, $database = '', $tablePrefix = '', array $config = [])
     {
         parent::__construct($pdo, $database, $tablePrefix, $config);
-
-        if (php_sapi_name() !== 'cli' && class_exists(DoctrineType::class)) {
+    
+        if (php_sapi_name() !== 'cli' && app()->runningInConsole() === false && class_exists(DoctrineType::class)) {
             try {
-                // ✅ إنشاء اتصال Doctrine متوافق مع DBAL 4
-                $doctrineConnection = DriverManager::getConnection([
-                    'dbname'   => $this->getDatabaseName(),
-                    'user'     => $this->getConfig('username'),
-                    'password' => $this->getConfig('password'),
-                    'host'     => $this->getConfig('host'),
-                    'driver'   => 'pdo_mysql',
-                    'charset'  => $this->getConfig('charset', 'utf8mb4'),
-                    'port'     => $this->getConfig('port', 3306),
-                ]);
-
-                $schemaManager = $doctrineConnection->createSchemaManager();
-                $dbPlatform = $schemaManager->getDatabasePlatform();
-
-                // 🧭 تسجيل أنواع الحقول الجغرافية كـ string حتى لا تحدث مشاكل
-                $geometries = [
-                    'geometry', 'point', 'linestring', 'polygon',
-                    'multipoint', 'multilinestring', 'multipolygon',
-                    'geometrycollection', 'geomcollection',
-                ];
-
-                foreach ($geometries as $type) {
-                    $dbPlatform->registerDoctrineTypeMapping($type, 'string');
+                if (!app()->bound('doctrine.spatial_ready')) {
+                    $doctrineConnection = DriverManager::getConnection([
+                        'dbname'   => $this->getDatabaseName(),
+                        'user'     => $this->getConfig('username'),
+                        'password' => $this->getConfig('password'),
+                        'host'     => $this->getConfig('host'),
+                        'driver'   => 'pdo_mysql',
+                        'charset'  => $this->getConfig('charset', 'utf8mb4'),
+                        'port'     => $this->getConfig('port', 3306),
+                    ]);
+    
+                    $schemaManager = $doctrineConnection->createSchemaManager();
+                    $dbPlatform = $schemaManager->getDatabasePlatform();
+    
+                    $geometries = [
+                        'geometry', 'point', 'linestring', 'polygon',
+                        'multipoint', 'multilinestring', 'multipolygon',
+                        'geometrycollection', 'geomcollection',
+                    ];
+    
+                    foreach ($geometries as $type) {
+                        $dbPlatform->registerDoctrineTypeMapping($type, 'string');
+                    }
+    
+                    app()->instance('doctrine.spatial_ready', true);
                 }
             } catch (\Throwable $e) {
-                report($e); // سجل الخطأ بدلاً من إيقاف التنفيذ
+                logger()->warning('Spatial Doctrine setup failed: '.$e->getMessage());
             }
         }
     }
+    
 
     /**
      * ✅ استخدام grammar مخصص مع prefix
