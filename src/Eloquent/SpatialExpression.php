@@ -3,12 +3,16 @@
 namespace Coopxl\LaravelMysqlSpatial\Eloquent;
 
 use Illuminate\Database\Query\Expression;
+use Illuminate\Database\Grammar;
 
 class SpatialExpression extends Expression
 {
-    public function getValue()
+    /**
+     * Laravel 12-compatible version of getValue
+     */
+    public function getValue(Grammar $grammar)
     {
-        return "ST_GeomFromText(?, ?, 'axis-order=long-lat')";
+        return "ST_GeomFromText(?, ?)";
     }
 
     public function getSpatialValue()

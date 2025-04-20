@@ -31,40 +31,16 @@ use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
  */
 trait SpatialTrait
 {
-    /*
-     * The attributes that are spatial representations.
-     * To use this Trait, add the following array to the model class
-     *
-     * @var array
-     *
-     * protected $spatialFields = [];
-     */
-
     public $geometries = [];
 
     protected $stRelations = [
-        'within',
-        'crosses',
-        'contains',
-        'disjoint',
-        'equals',
-        'intersects',
-        'overlaps',
-        'touches',
+        'within', 'crosses', 'contains', 'disjoint', 'equals', 'intersects', 'overlaps', 'touches',
     ];
 
     protected $stOrderFunctions = [
-        'distance',
-        'distance_sphere',
+        'distance', 'distance_sphere',
     ];
 
-    /**
-     * Create a new Eloquent query builder for the model.
-     *
-     * @param \Illuminate\Database\Query\Builder $query
-     *
-     * @return \Coopxl\LaravelMysqlSpatial\Eloquent\Builder
-     */
     public function newEloquentBuilder($query)
     {
         return new Builder($query);
@@ -85,7 +61,7 @@ trait SpatialTrait
     {
         foreach ($this->attributes as $key => $value) {
             if ($value instanceof GeometryInterface) {
-                $this->geometries[$key] = $value; //Preserve the geometry objects prior to the insert
+                $this->geometries[$key] = $value;
                 $this->attributes[$key] = new SpatialExpression($value);
             }
         }
@@ -93,10 +69,10 @@ trait SpatialTrait
         $insert = parent::performInsert($query, $options);
 
         foreach ($this->geometries as $key => $value) {
-            $this->attributes[$key] = $value; //Retrieve the geometry objects so they can be used in the model
+            $this->attributes[$key] = $value;
         }
 
-        return $insert; //Return the result of the parent insert
+        return $insert;
     }
 
     public function setRawAttributes(array $attributes, $sync = false)
@@ -134,7 +110,7 @@ trait SpatialTrait
     {
         $this->isColumnAllowed($geometryColumn);
 
-        $query->whereRaw("st_distance(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat')) <= ?", [
+        $query->whereRaw("st_distance(`$geometryColumn`, ST_GeomFromText(?, ?)) <= ?", [
             $geometry->toWkt(),
             $geometry->getSrid(),
             $distance,
@@ -149,7 +125,7 @@ trait SpatialTrait
 
         $query = $this->scopeDistance($query, $geometryColumn, $geometry, $distance);
 
-        $query->whereRaw("st_distance(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat')) != 0", [
+        $query->whereRaw("st_distance(`$geometryColumn`, ST_GeomFromText(?, ?)) != 0", [
             $geometry->toWkt(),
             $geometry->getSrid(),
         ]);
@@ -162,12 +138,11 @@ trait SpatialTrait
         $this->isColumnAllowed($geometryColumn);
 
         $columns = $query->getQuery()->columns;
-
         if (!$columns) {
             $query->select('*');
         }
 
-        $query->selectRaw("st_distance(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat')) as distance", [
+        $query->selectRaw("st_distance(`$geometryColumn`, ST_GeomFromText(?, ?)) as distance", [
             $geometry->toWkt(),
             $geometry->getSrid(),
         ]);
@@ -177,7 +152,7 @@ trait SpatialTrait
     {
         $this->isColumnAllowed($geometryColumn);
 
-        $query->whereRaw("st_distance_sphere(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat')) <= ?", [
+        $query->whereRaw("st_distance_sphere(`$geometryColumn`, ST_GeomFromText(?, ?)) <= ?", [
             $geometry->toWkt(),
             $geometry->getSrid(),
             $distance,
@@ -192,7 +167,7 @@ trait SpatialTrait
 
         $query = $this->scopeDistanceSphere($query, $geometryColumn, $geometry, $distance);
 
-        $query->whereRaw("st_distance_sphere($geometryColumn, ST_GeomFromText(?, ?, 'axis-order=long-lat')) != 0", [
+        $query->whereRaw("st_distance_sphere($geometryColumn, ST_GeomFromText(?, ?)) != 0", [
             $geometry->toWkt(),
             $geometry->getSrid(),
         ]);
@@ -205,11 +180,10 @@ trait SpatialTrait
         $this->isColumnAllowed($geometryColumn);
 
         $columns = $query->getQuery()->columns;
-
         if (!$columns) {
             $query->select('*');
         }
-        $query->selectRaw("st_distance_sphere(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat')) as distance", [
+        $query->selectRaw("st_distance_sphere(`$geometryColumn`, ST_GeomFromText(?, ?)) as distance", [
             $geometry->toWkt(),
             $geometry->getSrid(),
         ]);
@@ -223,7 +197,7 @@ trait SpatialTrait
             throw new UnknownSpatialRelationFunction($relationship);
         }
 
-        $query->whereRaw("st_{$relationship}(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat'))", [
+        $query->whereRaw("st_{$relationship}(`$geometryColumn`, ST_GeomFromText(?, ?))", [
             $geometry->toWkt(),
             $geometry->getSrid(),
         ]);
@@ -279,7 +253,7 @@ trait SpatialTrait
             throw new UnknownSpatialFunctionException($orderFunction);
         }
 
-        $query->orderByRaw("st_{$orderFunction}(`$geometryColumn`, ST_GeomFromText(?, ?, 'axis-order=long-lat')) {$direction}", [
+        $query->orderByRaw("st_{$orderFunction}(`$geometryColumn`, ST_GeomFromText(?, ?)) {$direction}", [
             $geometry->toWkt(),
             $geometry->getSrid(),
         ]);

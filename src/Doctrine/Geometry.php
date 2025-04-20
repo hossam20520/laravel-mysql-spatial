@@ -9,12 +9,12 @@ class Geometry extends Type
 {
     const GEOMETRY = 'geometry';
 
-    public function getSQLDeclaration(array $fieldDeclaration, AbstractPlatform $platform): string
+    public function getSQLDeclaration(array $fieldDeclaration, AbstractPlatform $platform): string 
     {
         return 'geometry';
     }
 
-    public function getName(): string
+    public function getName() 
     {
         return self::GEOMETRY;
     }
